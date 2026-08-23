@@ -1,32 +1,35 @@
-const CACHE_NAME = 'diag-kevin-v4';  // ← Changez ce numéro à chaque mise à jour !
-const urlsToCache = ['/index.html', '/app.js', '/manifest.json'];
+const CACHE_NAME = 'diag-kevin-v5';
+const urlsToCache = [
+    '/aide-diagnostic/',
+    '/aide-diagnostic/index.html',
+    '/aide-diagnostic/app.js',
+    '/aide-diagnostic/manifest.json'
+];
 
 self.addEventListener('install', event => {
+    console.log('[SW] Installation cache:', CACHE_NAME);
     event.waitUntil(
-        caches.open(CACHE_NAME).then(cache => {
-            console.log('Nouveau cache installé :', CACHE_NAME);
-            return cache.addAll(urlsToCache);
-        })
+        caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
     );
-    self.skipWaiting(); // Force l'activation immédiate
+    self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
+    console.log('[SW] Activation');
     event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames.filter(name => name !== CACHE_NAME)
-                          .map(name => caches.delete(name))
-            );
-        })
+        caches.keys().then(names => 
+            Promise.all(names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n)))
+        )
     );
-    self.clients.claim(); // Prend le contrôle immédiatement
+    self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
     event.respondWith(
-        caches.match(event.request).then(response => {
-            return response || fetch(event.request);
-        })
+        caches.match(event.request).then(r => r || fetch(event.request))
     );
+});
+
+self.addEventListener('message', event => {
+    if (event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
