@@ -13,6 +13,7 @@
     <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/2620/2620591.png">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2620/2620591.png">
     
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -20,7 +21,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
         body {
-            background: url('https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1920&q=80') center/cover fixed;
+            background: url('https://images.unsplash.com/photo-1619725002198-6a689b72f41d?auto=format&fit=crop&w=1920&q=80') center/cover fixed;
             min-height: 100vh; color: #fff;
         }
         body::before {
@@ -168,9 +169,9 @@
 <body>
     <!-- Bannière d'installation PWA -->
     <div id="installBanner" class="install-banner">
-        <h3> Installez l'application !</h3>
+        <h3>📲 Installez l'application !</h3>
         <p>Accès rapide et mises à jour automatiques</p>
-        <button class="btn" onclick="installPWA()">📲 Installer maintenant</button>
+        <button class="btn" onclick="installPWA()"> Installer maintenant</button>
         <button class="btn btn-secondary" onclick="dismissInstall()" style="margin-left:10px">Plus tard</button>
     </div>
 
@@ -180,7 +181,7 @@
             <p>Outil professionnel IA & Rappels Constructeur — Toutes marques 2017-2026</p>
         </div>
 
-        <!-- LOGIN -->
+        <!-- ==================== LOGIN ==================== -->
         <div id="loginSection" class="login-box">
             <h2>🔐 Connexion Sécurisée</h2>
             <div class="form-group">
@@ -196,7 +197,7 @@
             <div id="loginMessage" style="margin-top:15px"></div>
         </div>
 
-        <!-- MAIN APP -->
+        <!-- ==================== MAIN APP ==================== -->
         <div id="mainApp" class="hidden">
             <div class="user-info">
                 <div>
@@ -207,21 +208,22 @@
             </div>
 
             <div class="nav-tabs">
-                <div class="nav-tab active" onclick="showSection('diagnostic')"> Diagnostic</div>
-                <div class="nav-tab" onclick="showSection('analysis')"> Analyse IA</div>
-                <div class="nav-tab" onclick="showSection('recalls')"> Rappels & TSB</div>
+                <div class="nav-tab active" onclick="showSection('diagnostic')">🚗 Diagnostic</div>
+                <div class="nav-tab" onclick="showSection('analysis')">🤖 Analyse IA</div>
+                <div class="nav-tab" onclick="showSection('recalls')">📋 Rappels & TSB</div>
                 <div class="nav-tab" onclick="showSection('history')">📁 Historique</div>
                 <div class="nav-tab admin-only hidden" onclick="showSection('admin')">⚙️ Supervision</div>
                 <div class="nav-tab" onclick="showSection('share')">📤 Partager</div>
                 <div class="nav-tab" onclick="showSection('help')">❓ Aide</div>
             </div>
 
-            <!-- DIAGNOSTIC -->
+            <!-- ==================== DIAGNOSTIC ==================== -->
             <div id="diagnosticSection" class="section active">
                 <h2>🚗 Formulaire de Diagnostic</h2>
                 <div class="alert alert-info">Remplissez les constatations techniques. L'IA analysera l'origine du désordre et recherchera les rappels constructeur.</div>
 
-                <h3> Identification automatique du véhicule (optionnel)</h3>
+                <!-- Identification automatique -->
+                <h3>🔍 Identification automatique du véhicule (optionnel)</h3>
                 <div class="alert alert-info">Identifiez automatiquement votre véhicule par VIN ou immatriculation. Les campagnes de rappel seront recherchées automatiquement.</div>
                 <div class="form-group">
                     <label>Type d'identification</label>
@@ -237,13 +239,14 @@
                 </div>
                 <div id="idResult"></div>
 
+                <!-- Informations véhicule -->
                 <h3>📌 Informations Véhicule</h3>
                 <div class="form-group">
                     <label>Marque</label>
                     <select id="vehicleBrand">
                         <option value="">-- Sélectionner --</option>
                         <optgroup label="🇫🇷 Françaises"><option>Peugeot</option><option>Citroën</option><option>Renault</option><option>DS</option><option>Alpine</option></optgroup>
-                        <optgroup label="🇪🇺 Européennes"><option>Volkswagen</option><option>Audi</option><option>BMW</option><option>Mercedes</option><option>Porsche</option><option>Fiat</option><option>Alfa Romeo</option><option>Opel</option><option>Volvo</option><option>SEAT</option><option>Škoda</option><option>Mini</option><option>Land Rover</option><option>Jaguar</option></optgroup>
+                        <optgroup label="🇺 Européennes"><option>Volkswagen</option><option>Audi</option><option>BMW</option><option>Mercedes</option><option>Porsche</option><option>Fiat</option><option>Alfa Romeo</option><option>Opel</option><option>Volvo</option><option>SEAT</option><option>Škoda</option><option>Mini</option><option>Land Rover</option><option>Jaguar</option></optgroup>
                         <optgroup label="🌏 Asiatiques"><option>Toyota</option><option>Honda</option><option>Nissan</option><option>Mazda</option><option>Subaru</option><option>Mitsubishi</option><option>Suzuki</option><option>Lexus</option><option>Hyundai</option><option>Kia</option><option>Genesis</option><option>BYD</option><option>XPeng</option><option>NIO</option><option>Polestar</option></optgroup>
                         <optgroup label="🇺🇸 Américaines"><option>Ford</option><option>Chevrolet</option><option>Dodge</option><option>Jeep</option><option>Chrysler</option><option>Cadillac</option><option>GMC</option><option>Lincoln</option><option>Tesla</option><option>Rivian</option><option>Lucid</option></optgroup>
                     </select>
@@ -260,11 +263,13 @@
                 <div class="form-group"><label>Kilométrage (km)</label><input type="number" id="vehicleMileage" placeholder="Ex: 85000"></div>
                 <div class="form-group"><label>Numéro VIN (optionnel)</label><input type="text" id="vehicleVIN" placeholder="17 caractères" maxlength="17"></div>
 
+                <!-- Symptômes -->
                 <h3>⚠️ Symptômes & Constatations</h3>
                 <div class="form-group"><label>Symptôme principal constaté</label><textarea id="symptoms" placeholder="Décrivez le symptôme..."></textarea></div>
                 <div class="form-group"><label>Contexte d'apparition</label><textarea id="context" placeholder="Quand et dans quelles conditions..."></textarea></div>
                 <div class="form-group"><label>Défauts ou anomalies visuelles sur pièces</label><textarea id="visualDefects" placeholder="Anomalies visuelles observées..."></textarea></div>
 
+                <!-- Codes DTC -->
                 <h3>🔍 Codes Défauts (DTC)</h3>
                 <div class="form-group">
                     <label>Lecture des codes défauts réalisée ?</label>
@@ -277,7 +282,24 @@
                     <div class="form-group"><label>Numéros de codes DTC relevés</label><textarea id="dtcCodes" placeholder="Ex: P0300, P0171, U0100... (un par ligne)"></textarea></div>
                 </div>
 
+                <!-- QCM avec filtre par catégorie -->
                 <h3>✅ Questionnaire Technique (QCM)</h3>
+                <div class="form-group">
+                    <label>🔍 Filtrer les symptômes par catégorie :</label>
+                    <select id="symptomFilter" onchange="filterSymptomsByCategory(this.value)" style="width:100%;padding:12px;border:2px solid #e0e0e0;border-radius:10px;font-size:1em;background:#f8f9fa;">
+                        <option value="all">📋 Tous les symptômes</option>
+                        <option value="moteur">🔧 Moteur</option>
+                        <option value="transmission">⚙️ Transmission</option>
+                        <option value="electrique"> Électrique</option>
+                        <option value="electronique">💻 Électronique</option>
+                        <option value="abs">🛑 ABS</option>
+                        <option value="adas">🎯 ADAS</option>
+                        <option value="airbag">️ Airbag</option>
+                        <option value="batterie_haute_tension"> Batterie haute tension</option>
+                        <option value="recharge">🔌 Recharge</option>
+                        <option value="consommation"> Consommation</option>
+                    </select>
+                </div>
                 <div class="alert alert-info">Cochez les cas correspondants. Une cellule de détail s'ouvrira automatiquement.</div>
                 <div class="checkbox-group" id="qcmContainer"></div>
                 <div id="detailSections" style="margin-top:15px"></div>
@@ -290,7 +312,7 @@
                 </div>
             </div>
 
-            <!-- ANALYSIS -->
+            <!-- ==================== ANALYSIS ==================== -->
             <div id="analysisSection" class="section">
                 <h2>🤖 Analyse IA & Conclusion</h2>
                 <div class="alert alert-info">Analyse générée par le moteur expert local croisée avec la base de données constructeur et les rappels par VIN.</div>
@@ -298,7 +320,7 @@
                 <div id="aiConclusion"></div>
             </div>
 
-            <!-- RECALLS -->
+            <!-- ==================== RECALLS ==================== -->
             <div id="recallsSection" class="section">
                 <h2>📋 Campagnes de Rappel & TSB (Base Locale)</h2>
                 <div class="alert alert-info">Base de données locale des rappels et pannes connues (fonctionne hors-ligne).</div>
@@ -310,31 +332,31 @@
                 <div id="recallResults"></div>
             </div>
 
-            <!-- HISTORY -->
+            <!-- ==================== HISTORY ==================== -->
             <div id="historySection" class="section">
-                <h2> Historique des Diagnostics</h2>
+                <h2>📁 Historique des Diagnostics</h2>
                 <div id="historyContent"></div>
             </div>
 
-            <!-- ADMIN -->
+            <!-- ==================== ADMIN ==================== -->
             <div id="adminSection" class="section">
                 <h2>⚙️ Panneau de Supervision</h2>
                 <div class="alert alert-success">👑 Mode Administrateur activé — Contrôle total des accès à distance.</div>
                 <h3>📊 Statistiques</h3>
                 <div id="adminStats"></div>
                 <h3>👥 Gestion des Tiers (Accès à distance)</h3>
-                <div class="alert alert-warning">⚠️ Vous pouvez autoriser ou couper l'accès de n'importe quel tiers à tout moment. La modification est instantanée sur leur appareil.</div>
+                <div class="alert alert-warning">️ Vous pouvez autoriser ou couper l'accès de n'importe quel tiers à tout moment. La modification est instantanée sur leur appareil.</div>
                 <div id="tiersTable"></div>
             </div>
 
-            <!-- SHARE -->
+            <!-- ==================== SHARE ==================== -->
             <div id="shareSection" class="section">
                 <h2>📤 Partager l'Application</h2>
                 <div class="alert alert-info">📱 Partagez l'application avec vos tiers. Ils devront faire une demande d'accès.</div>
 
                 <!-- Bouton installation PWA -->
                 <div class="help-install" style="text-align:center">
-                    <h4> Installer l'application sur votre appareil</h4>
+                    <h4>📲 Installer l'application sur votre appareil</h4>
                     <p style="margin-bottom:15px">Pour un accès rapide et des mises à jour automatiques</p>
                     <button class="btn btn-primary" onclick="installPWA()" style="background:#fff;color:#ff6b35">📱 Installer sur l'écran d'accueil</button>
                     <p id="installMessage" style="margin-top:10px;font-size:0.9em"></p>
@@ -343,7 +365,7 @@
                 <div class="form-group">
                     <label>📱 Partager par SMS (avec instructions d'installation)</label>
                     <input type="text" id="shareSmsNumber" placeholder="Numéro de téléphone">
-                    <button class="btn btn-primary" onclick="shareBySMS()" style="margin-top:10px"> Envoyer SMS avec guide</button>
+                    <button class="btn btn-primary" onclick="shareBySMS()" style="margin-top:10px">📱 Envoyer SMS avec guide</button>
                 </div>
 
                 <div class="form-group">
@@ -353,19 +375,19 @@
                 </div>
 
                 <div class="form-group">
-                    <label>🔗 Lien de l'application</label>
+                    <label> Lien de l'application</label>
                     <input type="text" id="shareLink" readonly value="https://expertkevin06-cell.github.io/aide-diagnostic/">
                     <button class="btn btn-secondary" onclick="copyLink()" style="margin-top:10px">📋 Copier le lien</button>
                 </div>
 
                 <div class="form-group">
-                    <label>🔗 Lien direct installation</label>
+                    <label> Lien direct installation</label>
                     <input type="text" id="installLink" readonly value="https://expertkevin06-cell.github.io/aide-diagnostic/?install=1">
-                    <button class="btn btn-warning" onclick="copyInstallLink()" style="margin-top:10px">📋 Copier le lien d'installation</button>
+                    <button class="btn btn-warning" onclick="copyInstallLink()" style="margin-top:10px"> Copier le lien d'installation</button>
                 </div>
             </div>
 
-            <!-- HELP -->
+            <!-- ==================== HELP ==================== -->
             <div id="helpSection" class="section">
                 <h2>❓ Aide à l'installation pour les tiers</h2>
                 
