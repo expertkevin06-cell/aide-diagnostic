@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a2540">
+    <title>Aide au diagnostic by Kevin</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body {
+            background: url('https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1920&q=80') center/cover fixed;
+            min-height: 100vh;
+            color: #fff;
+        }
+        body::before {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(10,37,64,0.92) 0%, rgba(26,74,122,0.85) 50%, rgba(255,107,53,0.7) 100%);
+            z-index: -1;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 15px; }
+        .header {
+            text-align: center; padding: 25px 15px;
+            background: rgba(10, 37, 64, 0.95); border-radius: 20px; margin-bottom: 20px;
+            backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,107,53,0.3);
+        }
+        .header h1 {
+            font-size: 2.2em;
+            background: linear-gradient(45deg, #ff6b35, #ffd700);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; margin-bottom: 8px; font-weight: 800;
+        }
+        .header p { color: #a0c4e8; font-size: 1em; }
+        
+        .nav-tabs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; }
+        .nav-tab {
+            padding: 10px 18px; background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2); border-radius: 30px;
+            color: #fff; cursor: pointer; transition: all 0.3s; font-size: 0.9em; font-weight: 600;
+        }
+        .nav-tab:hover, .nav-tab.active {
+            background: linear-gradient(45deg, #ff6b35, #ff8c42); border-color: #ff6b35;
+            transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,107,53,0.4);
+        }
+        
+        .section {
+            background: rgba(255,255,255,0.97); color: #333; border-radius: 20px;
+            padding: 25px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); display: none;
+        }
+        .section.active { display: block; animation: fadeIn 0.4s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .section h2 { color: #0a2540; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #ff6b35; font-size: 1.6em; }
+        .section h3 { color: #0a2540; margin: 20px 0 12px; font-size: 1.2em; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: 700; color: #0a2540; margin-bottom: 6px; font-size: 0.95em; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px;
+            font-size: 1em; transition: all 0.3s; background: #f8f9fa;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none; border-color: #ff6b35; background: #fff; box-shadow: 0 0 0 3px rgba(255,107,53,0.15);
+        }
+        .form-group textarea { min-height: 90px; resize: vertical; }
+        
+        .checkbox-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 10px; }
+        .checkbox-item {
+            display: flex; align-items: center; padding: 10px; background: #f8f9fa;
+            border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s; cursor: pointer;
+        }
+        .checkbox-item:hover { border-color: #ff6b35; background: #fff5f0; }
+        .checkbox-item input { width: 18px; height: 18px; margin-right: 10px; accent-color: #ff6b35; }
+        .checkbox-item label { cursor: pointer; flex: 1; font-weight: 500; font-size: 0.9em; }
+        
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 30px; font-size: 0.95em;
+            font-weight: 700; cursor: pointer; transition: all 0.3s; margin: 5px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .btn-primary { background: linear-gradient(45deg, #ff6b35, #ff8c42); color: #fff; box-shadow: 0 5px 15px rgba(255,107,53,0.3); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,107,53,0.5); }
+        .btn-secondary { background: #0a2540; color: #fff; }
+        .btn-success { background: #28a745; color: #fff; }
+        .btn-danger { background: #dc3545; color: #fff; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        th { background: #0a2540; color: #fff; font-weight: 700; }
+        tr:hover { background: #f8f9fa; }
+        .status-authorized { color: #28a745; font-weight: 700; }
+        .status-refused { color: #dc3545; font-weight: 700; }
+        .status-pending { color: #ffc107; font-weight: 700; }
+        
+        .alert { padding: 12px 15px; border-radius: 10px; margin: 12px 0; font-weight: 600; font-size: 0.95em; }
+        .alert-info { background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; }
+        .alert-success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+        .alert-warning { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; }
+        .alert-danger { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+        
+        .conclusion-box {
+            background: linear-gradient(135deg, #0a2540, #1a4a7a); color: #fff;
+            padding: 20px; border-radius: 15px; margin-top: 20px; border-left: 5px solid #ff6b35;
+        }
+        .conclusion-box h3 { color: #ffd700; margin-bottom: 12px; }
+        .conclusion-box h4 { color: #ff8c42; margin-top: 15px; margin-bottom: 8px; }
+        .conclusion-box ul { margin-left: 20px; margin-bottom: 10px; }
+        .conclusion-box li { margin-bottom: 5px; line-height: 1.5; }
+        
+        .recall-card { background: #f8f9fa; border-left: 4px solid #ff6b35; padding: 12px; margin: 10px 0; border-radius: 8px; }
+        .recall-card h4 { color: #0a2540; margin-bottom: 6px; }
+        
+        .hidden { display: none !important; }
+        .login-box { max-width: 400px; margin: 40px auto; background: rgba(255,255,255,0.97); padding: 35px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
+        .login-box h2 { text-align: center; color: #0a2540; margin-bottom: 25px; }
+        
+        .user-info { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255,255,255,0.15); border-radius: 12px; margin-bottom: 15px; backdrop-filter: blur(10px); }
+        .badge { padding: 4px 10px; border-radius: 15px; font-size: 0.75em; font-weight: 700; margin-left: 8px; }
+        .badge-admin { background: #ffd700; color: #0a2540; }
+        .badge-user { background: #28a745; color: #fff; }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.6em; }
+            .nav-tabs { flex-direction: column; }
+            .nav-tab { width: 100%; text-align: center; }
+            .checkbox-group { grid-template-columns: 1fr; }
+            table { font-size: 0.8em; }
+            th, td { padding: 6px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Aide au diagnostic by Kevin</h1>
+            <p>Outil professionnel IA & Rappels Constructeur — Toutes marques</p>
+        </div>
+
+        <!-- LOGIN -->
+        <div id="loginSection" class="login-box">
+            <h2>🔐 Connexion Sécurisée</h2>
+            <div class="form-group">
+                <label>Nom d'utilisateur</label>
+                <input type="text" id="loginUsername" placeholder="Votre identifiant">
+            </div>
+            <div class="form-group">
+                <label>Mot de passe</label>
+                <input type="password" id="loginPassword" placeholder="Votre mot de passe">
+            </div>
+            <button class="btn btn-primary" onclick="handleLogin()" style="width:100%">Se connecter</button>
+            <button class="btn btn-secondary" onclick="showAccessRequest()" style="width:100%;margin-top:10px"> Demander un accès</button>
+            <div id="loginMessage" style="margin-top:15px"></div>
+        </div>
+
+        <!-- MAIN APP -->
+        <div id="mainApp" class="hidden">
+            <div class="user-info">
+                <div>
+                    <strong id="currentUserDisplay">Utilisateur</strong>
+                    <span id="userBadge" class="badge badge-user">Utilisateur</span>
+                </div>
+                <button class="btn btn-danger" onclick="logout()" style="padding:6px 15px;font-size:0.8em">Déconnexion</button>
+            </div>
+
+            <div class="nav-tabs">
+                <div class="nav-tab active" onclick="showSection('diagnostic')">🚗 Diagnostic</div>
+                <div class="nav-tab" onclick="showSection('analysis')">🤖 Analyse IA</div>
+                <div class="nav-tab" onclick="showSection('recalls')"> Rappels & TSB</div>
+                <div class="nav-tab" onclick="showSection('history')">📁 Historique</div>
+                <div class="nav-tab admin-only hidden" onclick="showSection('admin')">⚙️ Supervision</div>
+                <div class="nav-tab" onclick="showSection('share')">📤 Partager APK</div>
+            </div>
+
+            <!-- DIAGNOSTIC -->
+            <div id="diagnosticSection" class="section active">
+                <h2>🚗 Formulaire de Diagnostic</h2>
+                <div class="alert alert-info">Remplissez les constatations techniques. L'IA locale analysera l'origine du désordre.</div>
+
+                <h3> Informations Véhicule</h3>
+                <div class="form-group">
+                    <label>Marque</label>
+                    <select id="vehicleBrand">
+                        <option value="">-- Sélectionner --</option>
+                        <optgroup label="🇫🇷 Françaises"><option>Peugeot</option><option>Citroën</option><option>Renault</option><option>DS</option><option>Alpine</option></optgroup>
+                        <optgroup label="🇪🇺 Européennes"><option>Volkswagen</option><option>Audi</option><option>BMW</option><option>Mercedes</option><option>Porsche</option><option>Fiat</option><option>Alfa Romeo</option><option>Opel</option><option>Volvo</option><option>SEAT</option><option>Škoda</option><option>Mini</option><option>Land Rover</option><option>Jaguar</option></optgroup>
+                        <optgroup label="🌏 Asiatiques"><option>Toyota</option><option>Honda</option><option>Nissan</option><option>Mazda</option><option>Subaru</option><option>Mitsubishi</option><option>Suzuki</option><option>Lexus</option><option>Hyundai</option><option>Kia</option><option>Genesis</option></optgroup>
+                        <optgroup label="🇺🇸 Américaines"><option>Ford</option><option>Chevrolet</option><option>Dodge</option><option>Jeep</option><option>Chrysler</option><option>Cadillac</option><option>GMC</option><option>Lincoln</option><option>Tesla</option></optgroup>
+                    </select>
+                </div>
+                <div class="form-group"><label>Modèle</label><input type="text" id="vehicleModel" placeholder="Ex: 308, Clio, Golf..."></div>
+                <div class="form-group"><label>Année</label><input type="number" id="vehicleYear" placeholder="Ex: 2019" min="1950" max="2026"></div>
+                <div class="form-group">
+                    <label>Motorisation</label>
+                    <select id="vehicleEngine">
+                        <option value="">-- Sélectionner --</option>
+                        <option>Essence</option><option>Diesel (Gazole)</option><option>Hybride</option><option>Hybride rechargeable</option><option>Électrique</option><option>GPL</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Kilométrage (km)</label><input type="number" id="vehicleMileage" placeholder="Ex: 85000"></div>
+                <div class="form-group"><label>Numéro VIN (optionnel)</label><input type="text" id="vehicleVIN" placeholder="17 caractères" maxlength="17"></div>
+
+                <h3>⚠️ Symptômes & Constatations</h3>
+                <div class="form-group"><label>Symptôme principal constaté</label><textarea id="symptoms" placeholder="Décrivez le symptôme..."></textarea></div>
+                <div class="form-group"><label>Contexte d'apparition</label><textarea id="context" placeholder="Quand et dans quelles conditions..."></textarea></div>
+                <div class="form-group"><label>Défauts ou anomalies visuelles sur pièces</label><textarea id="visualDefects" placeholder="Anomalies visuelles observées..."></textarea></div>
+
+                <h3>🔍 Codes Défauts (DTC)</h3>
+                <div class="form-group">
+                    <label>Lecture des codes défauts réalisée ?</label>
+                    <div style="display:flex;gap:20px;margin-top:8px">
+                        <label style="display:flex;align-items:center;cursor:pointer"><input type="radio" name="dtcRead" value="oui" onchange="toggleDTCInput(true)" style="margin-right:8px;width:18px;height:18px"> OUI</label>
+                        <label style="display:flex;align-items:center;cursor:pointer"><input type="radio" name="dtcRead" value="non" onchange="toggleDTCInput(false)" style="margin-right:8px;width:18px;height:18px"> NON</label>
+                    </div>
+                </div>
+                <div id="dtcInputSection" class="hidden">
+                    <div class="form-group"><label>Numéros de codes DTC relevés</label><textarea id="dtcCodes" placeholder="Ex: P0300, P0171, U0100... (un par ligne)"></textarea></div>
+                </div>
+
+                <h3>✅ Questionnaire Technique (QCM)</h3>
+                <div class="alert alert-info">Cochez les cas correspondants. Une cellule de détail s'ouvrira automatiquement.</div>
+                <div class="checkbox-group" id="qcmContainer"></div>
+                <div id="detailSections" style="margin-top:15px"></div>
+
+                <div class="form-group" style="margin-top:20px"><label>Informations complémentaires</label><textarea id="additionalInfo" placeholder="Infos supplémentaires..."></textarea></div>
+
+                <div style="text-align:center;margin-top:25px">
+                    <button class="btn btn-primary" onclick="saveDiagnostic()">💾 Enregistrer</button>
+                    <button class="btn btn-success" onclick="goToAnalysis()">🤖 Lancer l'Analyse IA</button>
+                </div>
+            </div>
+
+            <!-- ANALYSIS -->
+            <div id="analysisSection" class="section">
+                <h2>🤖 Analyse IA & Conclusion</h2>
+                <div class="alert alert-info">Analyse générée par le moteur expert local (IA hors-ligne) croisée avec la base de données constructeur.</div>
+                <div id="analysisContent"></div>
+                <div id="aiConclusion"></div>
+            </div>
+
+            <!-- RECALLS -->
+            <div id="recallsSection" class="section">
+                <h2>📋 Campagnes de Rappel & TSB (Base Locale)</h2>
+                <div class="alert alert-info">Base de données locale des rappels et pannes connues (fonctionne hors-ligne).</div>
+                <div class="form-group">
+                    <label>Rechercher par marque/modèle</label>
+                    <input type="text" id="recallSearch" placeholder="Ex: Peugeot 308">
+                    <button class="btn btn-primary" onclick="searchRecalls()" style="margin-top:10px">🔍 Rechercher</button>
+                </div>
+                <div id="recallResults"></div>
+            </div>
+
+            <!-- HISTORY -->
+            <div id="historySection" class="section">
+                <h2>📁 Historique des Diagnostics</h2>
+                <div id="historyContent"></div>
+            </div>
+
+            <!-- ADMIN -->
+            <div id="adminSection" class="section">
+                <h2>️ Panneau de Supervision</h2>
+                <div class="alert alert-success"> Mode Administrateur activé — Contrôle total des accès à distance.</div>
+                <h3>📊 Statistiques</h3>
+                <div id="adminStats"></div>
+                <h3>👥 Gestion des Tiers (Accès à distance)</h3>
+                <div class="alert alert-warning">⚠️ Vous pouvez autoriser ou couper l'accès de n'importe quel tiers à tout moment. La modification est instantanée sur leur appareil.</div>
+                <div id="tiersTable"></div>
+            </div>
+
+            <!-- SHARE -->
+            <div id="shareSection" class="section">
+                <h2>📤 Partager l'Application</h2>
+                <div class="alert alert-info">📱 Partagez l'APK ou le lien. Les destinataires devront faire une demande d'accès.</div>
+                <div class="form-group">
+                    <label>Partager par SMS</label>
+                    <input type="text" id="shareSmsNumber" placeholder="Numéro de téléphone">
+                    <button class="btn btn-primary" onclick="shareBySMS()" style="margin-top:10px"> Envoyer SMS</button>
+                </div>
+                <div class="form-group">
+                    <label>Partager par Email</label>
+                    <input type="email" id="shareEmail" placeholder="Adresse email">
+                    <button class="btn btn-primary" onclick="shareByEmail()" style="margin-top:10px">📧 Envoyer Email</button>
+                </div>
+                <div class="form-group">
+                    <label>Lien de téléchargement / PWA</label>
+                    <input type="text" id="shareLink" readonly value="https://votre-site.github.io/diag-kevin">
+                    <button class="btn btn-secondary" onclick="copyLink()" style="margin-top:10px">📋 Copier le lien</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ CONFIGURATION FIREBASE ============
+        const firebaseConfig = {
+            apiKey: "AIzaSyCwcLLNZDdqzGsSybo7V0holqKfRoB47ag",
+            authDomain: "diag-kevin.firebaseapp.com",
+            projectId: "diag-kevin",
+            storageBucket: "diag-kevin.appspot.com",
+            messagingSenderId: "7479720363",
+            appId: "1:7479720363:web:05c047578987e9da43baee"
+        };
+        
+        // Initialisation Firebase
+        let db = null;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+        } catch(e) {
+            console.log("Firebase non configuré, utilisation du mode local uniquement.");
+        }
+
+        const ADMIN_PASSWORD = "Kevin83600";
+        let currentUser = null;
+        let isAdmin = false;
+        let currentDiagnostic = null;
+
+        // ============ BASE DE DONNÉES LOCALE (Rappels & Pannes connues) ============
+        const localRecallsDB = [
+            { brand: 'Peugeot', model: '308', years: '2012-2021', issue: 'Défaut airbag passager', tsb: 'PSA-2019-001', desc: 'Rappel pour défaut de déploiement airbag passager. Vérifier numéro de série.' },
+            { brand: 'Peugeot', model: '3008', years: '2016-2020', issue: 'Perte de puissance / Mode dégradé', tsb: 'PSA-2020-015', desc: 'Défaut calculateur injection ou vanne EGR. Mise à jour logiciel ou remplacement.' },
+            { brand: 'Peugeot', model: '508', years: '2018-2022', issue: 'Problème boîte EAT8', tsb: 'PSA-2021-008', desc: 'À-coups à froid, défaut mécatronique. Mise à jour TCM requise.' },
+            { brand: 'Citroën', model: 'C4', years: '2010-2018', issue: 'Fuite circuit refroidissement', tsb: 'PSA-2018-022', desc: 'Rappel pompe à eau - risque surchauffe moteur.' },
+            { brand: 'Citroën', model: 'C5 Aircross', years: '2018-2022', issue: 'Défaut système hybride', tsb: 'PSA-2022-011', desc: 'Panne onduleur haute tension. Remplacement sous garantie.' },
+            { brand: 'Renault', model: 'Clio', years: '2012-2019', issue: 'Défaut freinage / ABS', tsb: 'RN-2019-008', desc: 'Rappel maître-cylindre de frein ou capteur ABS.' },
+            { brand: 'Renault', model: 'Megane', years: '2015-2021', issue: 'Problème boîte EDC', tsb: 'RN-2020-012', desc: 'Défaut mécatronique boîte double embrayage. Perte de rapport.' },
+            { brand: 'Renault', model: 'Captur', years: '2013-2019', issue: 'Consommation huile moteur', tsb: 'RN-2018-005', desc: 'Défaut segmentation moteurs 1.2 TCe. Risque casse moteur.' },
+            { brand: 'Volkswagen', model: 'Golf', years: '2012-2020', issue: 'Consommation huile / FAP', tsb: 'VW-2018-045', desc: 'Rappel segments piston ou encrassement FAP 2.0 TDI.' },
+            { brand: 'Volkswagen', model: 'Tiguan', years: '2016-2021', issue: 'Défaut airbag Takata', tsb: 'VW-2019-033', desc: 'Rappel airbag Takata - risque projection de métal.' },
+            { brand: 'Volkswagen', model: 'Passat', years: '2014-2020', issue: 'Pompe à eau électrique', tsb: 'VW-2020-012', desc: 'Fuite pompe à eau électrique, risque court-circuit.' },
+            { brand: 'BMW', model: 'Série 3', years: '2012-2019', issue: 'Défaut pompe à carburant', tsb: 'BMW-2020-019', desc: 'Rappel pompe haute pression - risque calage moteur.' },
+            { brand: 'BMW', model: 'Série 1', years: '2011-2019', issue: 'Chaîne de distribution', tsb: 'BMW-2017-004', desc: 'Allongement chaîne distribution N47. Risque casse moteur.' },
+            { brand: 'Mercedes', model: 'Classe A', years: '2012-2018', issue: 'Défaut direction assistée', tsb: 'MB-2019-007', desc: 'Rappel colonne de direction assistée électrique.' },
+            { brand: 'Mercedes', model: 'Classe C', years: '2014-2021', issue: 'Problème AdBlue', tsb: 'MB-2020-015', desc: 'Cristallisation réservoir AdBlue. Remplacement réservoir.' },
+            { brand: 'Toyota', model: 'Yaris', years: '2011-2020', issue: 'Défaut airbag / Pompe à essence', tsb: 'TY-2019-025', desc: 'Rappel airbag Takata ou pompe à carburant basse pression.' },
+            { brand: 'Toyota', model: 'RAV4', years: '2015-2021', issue: 'Batterie 12V hybride', tsb: 'TY-2021-008', desc: 'Défaut batterie auxiliaire 12V sur modèles hybrides.' },
+            { brand: 'Ford', model: 'Focus', years: '2011-2018', issue: 'Défaut boîte Powershift', tsb: 'FD-2018-041', desc: 'Rappel boîte double embrayage - à-coups, perte de mouvement.' },
+            { brand: 'Ford', model: 'Fiesta', years: '2012-2017', issue: 'Fuite liquide refroidissement', tsb: 'FD-2017-012', desc: 'Durite de refroidissement poreuse, risque surchauffe.' },
+            { brand: 'Tesla', model: 'Model 3', years: '2017-2022', issue: 'Défaut suspension / Écran', tsb: 'TS-2021-003', desc: 'Rappel bras de suspension avant ou défaillance écran central.' },
+            { brand: 'Hyundai', model: 'Tucson', years: '2015-2020', issue: 'Risque incendie moteur', tsb: 'HY-2020-009', desc: 'Rappel défaut segment moteur 1.7 CRDi, risque incendie.' },
+            { brand: 'Kia', model: 'Sportage', years: '2016-2021', issue: 'Perte de puissance', tsb: 'KI-2021-004', desc: 'Défaut calculateur moteur ou vanne EGR bloquée.' }
+        ];
+
+        // ============ MOTEUR IA LOCAL (Système Expert Gratuit & Hors-ligne) ============
+        function runLocalAI(d) {
+            const issues = [], causes = [], consequences = [], recommendations = [];
+            let severity = 'Normal';
+
+            // Analyse QCM
+            const qcmMap = {
+                qcm1: { i: 'Dysfonctionnement avec véhicule roulant', c: 'Défaut intermittent électronique ou mécanique' },
+                qcm2: { i: 'Bruit anormal détecté', c: 'Usure pièces mécaniques (roulements, courroies, supports, cardans)' },
+                qcm3: { i: 'Risque incendie / Fumée / Odeur brûlé', c: 'Court-circuit, fuite carburant sur partie chaude, surchauffe', s: 'CRITIQUE', cons: 'DANGER IMMÉDIAT - Arrêt du véhicule obligatoire' },
+                qcm4: { i: 'Défaut comportement routier', c: 'Problème suspension, direction, freinage, géométrie ou pneus' },
+                qcm5: { i: 'Perte de puissance', c: 'Alimentation, turbo, injection, encrassement FAP/EGR, mode dégradé' },
+                qcm6: { i: 'À-coups moteur', c: 'Allumage (bougies/bobines), injecteurs, régime irrégulier, admission d\'air' },
+                qcm7: { i: 'À-coups boîte de vitesse', c: 'Défaut mécatronique, embrayage, convertisseur, niveau huile boîte' },
+                qcm8: { i: 'Défaut fonctionnement boîte', c: 'Panne capteur boîte, mécatronique, faisceau électrique' },
+                qcm9: { i: 'Problème passage rapports', c: 'Tringlerie, synchroniseurs, huile boîte usée, embrayage' },
+                qcm10: { i: 'Voyant alerte actif', c: 'Défaut enregistré calculateurs, nécessite lecture DTC approfondie' },
+                qcm11: { i: 'Démarrage difficile/impossible', c: 'Batterie, démarreur, alternateur, immobiliseur, pompe à carburant' },
+                qcm12: { i: 'Surchauffe moteur', c: 'Circuit refroidissement, thermostat, pompe à eau, radiateur, joint culasse', s: 'CRITIQUE', cons: 'Risque de casse moteur - Arrêt immédiat' },
+                qcm13: { i: 'Fuite détectée', c: 'Joint, durite, carter, pompe. Identifier le liquide (huile, LDR, carburant)' },
+                qcm14: { i: 'Perte de freinage', c: 'Circuit frein, maître-cylindre, ABS, plaquettes/disques', s: 'CRITIQUE', cons: 'DANGER MORTEL - Immobilisation stricte du véhicule' },
+                qcm15: { i: 'Problème électrique/batterie', c: 'Batterie 12V, alternateur, faisceau, masse, calculateurs' }
+            };
+
+            for (let key in d.qcm) {
+                if (d.qcm[key] && qcmMap[key]) {
+                    issues.push(qcmMap[key].i);
+                    causes.push(qcmMap[key].c);
+                    if (qcmMap[key].s === 'CRITIQUE') severity = 'CRITIQUE';
+                    if (qcmMap[key].cons) consequences.push(qcmMap[key].cons);
+                }
+            }
+
+            // Analyse DTC
+            let dtcAnalysis = '';
+            if (d.dtcRead === 'oui' && d.dtcCodes) {
+                const codes = d.dtcCodes.split('\n').map(c => c.trim().toUpperCase()).filter(c => c);
+                const dtcDict = {
+                    'P0': 'Défaut Powertrain (Moteur/Boîte) - Norme OBD2 générique',
+                    'P1': 'Défaut Powertrain Spécifique Constructeur',
+                    'P2': 'Défaut Powertrain Boîte de vitesses',
+                    'C0': 'Défaut Châssis (Freins, ABS, Suspension)',
+                    'B0': 'Défaut Carrosserie (Airbags, Confort)',
+                    'U0': 'Défaut Réseau CAN (Communication entre calculateurs)'
+                };
+                dtcAnalysis = '<h4>🔍 Analyse des codes DTC :</h4><ul>';
+                codes.forEach(code => {
+                    let desc = 'Code inconnu, vérifier base constructeur';
+                    for (let prefix in dtcDict) { if (code.startsWith(prefix)) desc = dtcDict[prefix]; }
+                    dtcAnalysis += `<li><strong>${code}</strong> : ${desc}</li>`;
+                });
+                dtcAnalysis += '</ul>';
+            }
+
+            // Croisement Base de Rappels
+            let recallMatch = localRecallsDB.find(r => 
+                r.brand.toLowerCase() === d.vehicle.brand.toLowerCase() && 
+                d.vehicle.model.toLowerCase().includes(r.model.toLowerCase())
+            );
+            let recallHtml = '';
+            if (recallMatch) {
+                recallHtml = `<div class="alert alert-warning">🚨 <strong>ALERTE RAPPEL CONSTRUCTEUR :</strong> Ce modèle est concerné par la campagne <strong>${recallMatch.tsb}</strong> pour : ${recallMatch.issue}. ${recallMatch.desc}</div>`;
+                recommendations.push('Contacter le concessionnaire avec le VIN pour vérifier l\'éligibilité au rappel ' + recallMatch.tsb);
+            }
+
+            // Recommandations générales
+            recommendations.push('Effectuer un diagnostic complet avec outil constructeur (Diagbox, Renault Clip, VAS, etc.)');
+            recommendations.push('Vérifier les bulletins techniques (TSB) sur le portail constructeur');
+            if (severity === 'CRITIQUE') recommendations.push('️ NE PAS UTILISER LE VÉHICULE - Remorquage vers atelier recommandé');
+            else recommendations.push('Planifier un rendez-vous atelier sous 48h pour investigation');
+
+            return { issues, causes, consequences, recommendations, dtcAnalysis, recallHtml, severity };
+        }
+
+        // ============ INITIALISATION QCM ============
+        const qcmLabels = [
+            'Panne / Dysfonctionnement mais roulant', 'Bruit anormal', 'Incendie / Fumée / Odeur de brûlé',
+            'Défaut de comportement sur route', 'Défaut de puissance', 'À-coups moteur',
+            'À-coups boîte de vitesse', 'Défaut de fonctionnement boîte', 'Problème de passage des rapports',
+            'Voyant alerte allumé planche de bord', 'Démarrage difficile / Impossible', 'Surchauffe moteur',
+            'Fuite (liquide, huile, carburant)', 'Perte de freinage', 'Problème électrique / Batterie'
+        ];
+        
+        function initQCM() {
+            const container = document.getElementById('qcmContainer');
+            qcmLabels.forEach((label, index) => {
+                const id = index + 1;
+                container.innerHTML += `
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="qcm${id}" onchange="toggleDetail(${id}, '${label}')">
+                        <label for="qcm${id}">${label}</label>
+                    </div>
+                `;
+            });
+        }
+
+        function toggleDetail(id, label) {
+            const checkbox = document.getElementById('qcm' + id);
+            const existing = document.getElementById('detail-' + id);
+            const container = document.getElementById('detailSections');
+            
+            if (checkbox.checked && !existing) {
+                const div = document.createElement('div');
+                div.id = 'detail-' + id;
+                div.className = 'form-group';
+                div.style.cssText = 'padding:12px;background:#fff;border-radius:8px;border-left:4px solid #ff6b35;box-shadow:0 2px 5px rgba(0,0,0,0.05)';
+                div.innerHTML = `<label>Détails pour : <strong>${label}</strong></label><textarea placeholder="Décrivez en détail (bruit, fréquence, conditions...)"></textarea>`;
+                container.appendChild(div);
+            } else if (!checkbox.checked && existing) {
+                existing.remove();
+            }
+        }
+
+        // ============ AUTHENTIFICATION & FIREBASE ============
+        async function handleLogin() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const msg = document.getElementById('loginMessage');
+
+            if (!username || !password) { msg.innerHTML = '<div class="alert alert-danger">Champs requis</div>'; return; }
+
+            // Vérification Admin locale
+            if (username.toLowerCase() === 'admin' && password === ADMIN_PASSWORD) {
+                currentUser = { username: 'admin', role: 'admin', status: 'authorized' };
+                isAdmin = true;
+                enterApp();
+                return;
+            }
+
+            // Vérification Tiers via Firebase (ou LocalStorage si Firebase non configuré)
+            if (db) {
+                try {
+                    const doc = await db.collection('users').doc(username).get();
+                    if (doc.exists) {
+                        const data = doc.data();
+                        if (data.password !== password) { msg.innerHTML = '<div class="alert alert-danger">Mot de passe incorrect</div>'; return; }
+                        if (data.status === 'refused') { msg.innerHTML = '<div class="alert alert-danger">❌ Accès refusé par l\'administrateur</div>'; return; }
+                        if (data.status === 'pending') { msg.innerHTML = '<div class="alert alert-warning"> Demande en attente de validation par Kevin</div>'; return; }
+                        
+                        currentUser = { username, role: 'user', status: 'authorized' };
+                        isAdmin = false;
+                        enterApp();
+                    } else {
+                        msg.innerHTML = '<div class="alert alert-danger">Utilisateur inconnu. Demandez un accès.</div>';
+                    }
+                } catch(e) {
+                    msg.innerHTML = '<div class="alert alert-danger">Erreur de connexion. Vérifiez la config Firebase.</div>';
+                }
+            } else {
+                // Fallback LocalStorage
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                const user = users.find(u => u.username === username && u.password === password);
+                if (!user) { msg.innerHTML = '<div class="alert alert-danger">Identifiants incorrects</div>'; return; }
+                if (user.status === 'refused') { msg.innerHTML = '<div class="alert alert-danger">❌ Accès refusé</div>'; return; }
+                if (user.status === 'pending') { msg.innerHTML = '<div class="alert alert-warning">⏳ En attente</div>'; return; }
+                currentUser = user;
+                isAdmin = user.role === 'admin';
+                enterApp();
+            }
+        }
+
+        function enterApp() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('currentUserDisplay').textContent = currentUser.username;
+            const badge = document.getElementById('userBadge');
+            if (isAdmin) {
+                badge.textContent = 'Administrateur'; badge.className = 'badge badge-admin';
+                document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+                loadAdminData();
+            } else {
+                badge.textContent = 'Utilisateur'; badge.className = 'badge badge-user';
+            }
+            updateHistory();
+        }
+
+        function logout() {
+            currentUser = null; isAdmin = false;
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('loginUsername').value = ''; document.getElementById('loginPassword').value = '';
+            document.getElementById('loginMessage').innerHTML = '';
+        }
+
+        async function showAccessRequest() {
+            const username = prompt('Choisissez votre nom d\'utilisateur :');
+            if (!username) return;
+            const password = prompt('Choisissez votre mot de passe :');
+            if (!password) return;
+
+            if (db) {
+                try {
+                    await db.collection('users').doc(username).set({
+                        username, password, role: 'user', status: 'pending', date: new Date().toISOString()
+                    });
+                    alert('✅ Demande envoyée à Kevin. Vous serez notifié de la décision.');
+                } catch(e) { alert('Erreur: ' + e.message); }
+            } else {
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                if (users.find(u => u.username === username)) { alert('Existe déjà'); return; }
+                users.push({ username, password, role: 'user', status: 'pending', date: new Date().toISOString() });
+                localStorage.setItem('users', JSON.stringify(users));
+                alert('✅ Demande enregistrée localement. (Configurez Firebase pour l\'envoi à distance)');
+            }
+        }
+
+        // ============ NAVIGATION ============
+        function showSection(section) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(section + 'Section').classList.add('active');
+            event.target.classList.add('active');
+            if (section === 'admin') loadAdminData();
+            if (section === 'history') updateHistory();
+        }
+
+        function toggleDTCInput(show) { document.getElementById('dtcInputSection').classList.toggle('hidden', !show); }
+
+        // ============ DIAGNOSTIC ============
+        function saveDiagnostic() {
+            const data = {
+                id: Date.now(), date: new Date().toISOString(), user: currentUser.username,
+                vehicle: {
+                    brand: document.getElementById('vehicleBrand').value, model: document.getElementById('vehicleModel').value,
+                    year: document.getElementById('vehicleYear').value, engine: document.getElementById('vehicleEngine').value,
+                    mileage: document.getElementById('vehicleMileage').value, vin: document.getElementById('vehicleVIN').value
+                },
+                symptoms: document.getElementById('symptoms').value, context: document.getElementById('context').value,
+                visualDefects: document.getElementById('visualDefects').value,
+                dtcRead: document.querySelector('input[name="dtcRead"]:checked')?.value || 'non',
+                dtcCodes: document.getElementById('dtcCodes').value,
+                qcm: {}, additionalInfo: document.getElementById('additionalInfo').value
+            };
+
+            for (let i = 1; i <= 15; i++) data.qcm['qcm' + i] = document.getElementById('qcm' + i).checked;
+
+            if (!data.vehicle.brand || !data.symptoms) { alert('⚠️ Marque et Symptômes requis'); return; }
+
+            const diagnostics = JSON.parse(localStorage.getItem('diagnostics') || '[]');
+            diagnostics.push(data);
+            localStorage.setItem('diagnostics', JSON.stringify(diagnostics));
+            currentDiagnostic = data;
+            alert('✅ Diagnostic enregistré !');
+            updateHistory();
+        }
+
+        function goToAnalysis() {
+            if (!currentDiagnostic) {
+                const diagnostics = JSON.parse(localStorage.getItem('diagnostics') || '[]');
+                if (diagnostics.length > 0) currentDiagnostic = diagnostics[diagnostics.length - 1];
+                else { alert('Enregistrez d\'abord un diagnostic'); return; }
+            }
+            showSection('analysis');
+            generateAIAnalysis();
+        }
+
+        function generateAIAnalysis() {
+            const d = currentDiagnostic;
+            const aiResult = runLocalAI(d);
+            
+            let html = `<div class="conclusion-box">
+                <h3>🧠 Analyse Technique par IA Locale</h3>
+                <p><strong>Véhicule :</strong> ${d.vehicle.brand} ${d.vehicle.model} ${d.vehicle.year || ''} - ${d.vehicle.engine || '?'} - ${d.vehicle.mileage || '?'} km</p>
+                <p><strong>Niveau de sévérité :</strong> <span style="color:${aiResult.severity === 'CRITIQUE' ? '#ff6b6b' : '#ffd700'};font-weight:bold">${aiResult.severity}</span></p>
+                
+                ${aiResult.recallHtml}
+
+                <h4>⚠️ Symptômes identifiés :</h4>
+                <ul>${aiResult.issues.length ? aiResult.issues.map(i => `<li>${i}</li>`).join('') : '<li>' + (d.symptoms || 'Non précisé') + '</li>'}</ul>
+
+                <h4>🔍 Causes probables :</h4>
+                <ul>${aiResult.causes.length ? aiResult.causes.map(c => `<li>${c}</li>`).join('') : '<li>Investigation approfondie requise</li>'}</ul>
+
+                ${aiResult.consequences.length ? `<h4>🚨 Conséquences potentielles :</h4><ul>${aiResult.consequences.map(c => `<li>${c}</li>`).join('')}</ul>` : ''}
+                ${aiResult.dtcAnalysis}
+
+                <h4> Recommandations & Plan d'action :</h4>
+                <ul>${aiResult.recommendations.map(r => `<li>${r}</li>`).join('')}</ul>
+
+                <h4>📊 Conclusion argumentée :</h4>
+                <p>Sur la base des éléments techniques fournis pour le <strong>${d.vehicle.brand} ${d.vehicle.model}</strong>, 
+                l'analyse croisée des symptômes, des codes DTC et de la base de données de pannes connues identifie 
+                <strong>${aiResult.issues.length} dysfonctionnement(s)</strong>. 
+                Les causes racines pointent vers ${aiResult.causes[0] || 'un défaut technique à investiguer'}. 
+                ${aiResult.recallHtml ? 'Le véhicule correspond à une campagne de rappel connue, une action constructeur est prioritaire.' : 'Aucun rappel constructeur direct trouvé pour cette combinaison, mais les TSB doivent être vérifiés.'} 
+                Une expertise professionnelle avec outillage spécifique est requise pour confirmer et réparer.</p>
+            </div>`;
+            
+            document.getElementById('aiConclusion').innerHTML = html;
+        }
+
+        // ============ RECALLS ============
+        function searchRecalls() {
+            const search = document.getElementById('recallSearch').value.toLowerCase();
+            const results = localRecallsDB.filter(r => (r.brand + ' ' + r.model).toLowerCase().includes(search));
+            let html = '';
+            if (results.length === 0) html = '<div class="alert alert-warning">Aucun rappel trouvé localement. Vérifiez sur rappel.gouv.fr</div>';
+            else {
+                html = '<div class="alert alert-success">✅ ' + results.length + ' résultat(s)</div>';
+                results.forEach(r => {
+                    html += `<div class="recall-card"><h4>🚨 ${r.brand} ${r.model} (${r.years})</h4><p><strong>Problème :</strong> ${r.issue}</p><p><strong>TSB :</strong> ${r.tsb}</p><p>${r.desc}</p></div>`;
+                });
+            }
+            document.getElementById('recallResults').innerHTML = html;
+        }
+
+        // ============ ADMIN ============
+        async function loadAdminData() {
+            if (!db) {
+                // Fallback local
+                const users = JSON.parse(localStorage.getItem('users') || '[]').filter(u => u.role !== 'admin');
+                renderTiersTable(users);
+                document.getElementById('adminStats').innerHTML = '<div class="alert alert-warning">Mode Local : Les modifications ne sont pas synchronisées à distance. Configurez Firebase.</div>';
+                return;
+            }
+
+            try {
+                const snapshot = await db.collection('users').get();
+                const users = [];
+                snapshot.forEach(doc => { if (doc.data().role !== 'admin') users.push({ id: doc.id, ...doc.data() }); });
+                renderTiersTable(users);
+
+                const authorized = users.filter(u => u.status === 'authorized').length;
+                const refused = users.filter(u => u.status === 'refused').length;
+                const pending = users.filter(u => u.status === 'pending').length;
+                document.getElementById('adminStats').innerHTML = `
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+                        <div class="alert alert-success"><strong>✅ Autorisés :</strong> ${authorized}</div>
+                        <div class="alert alert-danger"><strong>❌ Refusés :</strong> ${refused}</div>
+                        <div class="alert alert-warning"><strong>⏳ En attente :</strong> ${pending}</div>
+                    </div>`;
+            } catch(e) { console.error(e); }
+        }
+
+        function renderTiersTable(users) {
+            let html = '<table><thead><tr><th>Utilisateur</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead><tbody>';
+            if (users.length === 0) html += '<tr><td colspan="4" style="text-align:center">Aucun tiers</td></tr>';
+            else {
+                users.forEach(u => {
+                    const statusClass = u.status === 'authorized' ? 'status-authorized' : u.status === 'refused' ? 'status-refused' : 'status-pending';
+                    const statusText = u.status === 'authorized' ? '✅ Autorisé' : u.status === 'refused' ? '❌ Refusé' : '⏳ En attente';
+                    html += `<tr>
+                        <td>${u.username}</td><td>${new Date(u.date).toLocaleDateString('fr-FR')}</td>
+                        <td class="${statusClass}">${statusText}</td>
+                        <td>
+                            <button class="btn btn-success" onclick="setUserStatus('${u.id || u.username}','authorized')" style="padding:5px 10px;font-size:0.75em">Autoriser</button>
+                            <button class="btn btn-danger" onclick="setUserStatus('${u.id || u.username}','refused')" style="padding:5px 10px;font-size:0.75em">Couper</button>
+                        </td></tr>`;
+                });
+            }
+            html += '</tbody></table>';
+            document.getElementById('tiersTable').innerHTML = html;
+        }
+
+        async function setUserStatus(id, status) {
+            if (db) {
+                await db.collection('users').doc(id).update({ status });
+                alert(`✅ Statut mis à jour : ${status}`);
+                loadAdminData();
+            } else {
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                const user = users.find(u => u.username === id);
+                if (user) { user.status = status; localStorage.setItem('users', JSON.stringify(users)); alert('Mis à jour localement'); loadAdminData(); }
+            }
+        }
+
+        // ============ HISTORY ============
+        function updateHistory() {
+            const diagnostics = JSON.parse(localStorage.getItem('diagnostics') || '[]');
+            let html = '';
+            if (diagnostics.length === 0) html = '<div class="alert alert-info">Aucun diagnostic</div>';
+            else {
+                html = '<table><thead><tr><th>Date</th><th>Véhicule</th><th>Symptôme</th><th>Actions</th></tr></thead><tbody>';
+                diagnostics.slice().reverse().forEach(d => {
+                    html += `<tr><td>${new Date(d.date).toLocaleDateString('fr-FR')}</td><td>${d.vehicle.brand} ${d.vehicle.model}</td><td>${d.symptoms.substring(0, 40)}...</td><td><button class="btn btn-primary" onclick="loadDiagnostic(${d.id})" style="padding:5px 10px;font-size:0.75em">Voir</button></td></tr>`;
+                });
+                html += '</tbody></table>';
+            }
+            document.getElementById('historyContent').innerHTML = html;
+        }
+
+        function loadDiagnostic(id) {
+            currentDiagnostic = JSON.parse(localStorage.getItem('diagnostics') || '[]').find(d => d.id === id);
+            if (currentDiagnostic) { showSection('analysis'); generateAIAnalysis(); }
+        }
+
+        // ============ SHARE ============
+        function shareBySMS() {
+            const number = document.getElementById('shareSmsNumber').value;
+            if (!number) { alert('Numéro requis'); return; }
+            window.open(`sms:${number}?body=${encodeURIComponent('Bonjour, voici l\'APK "Aide au diagnostic by Kevin". Lien : ' + document.getElementById('shareLink').value + ' - Demande d\'accès obligatoire.')}`);
+        }
+        function shareByEmail() {
+            const email = document.getElementById('shareEmail').value;
+            if (!email) { alert('Email requis'); return; }
+            window.open(`mailto:${email}?subject=${encodeURIComponent('App Diagnostic Kevin')}&body=${encodeURIComponent('Lien : ' + document.getElementById('shareLink').value)}`);
+        }
+        function copyLink() {
+            const link = document.getElementById('shareLink'); link.select(); document.execCommand('copy'); alert('Lien copié');
+        }
+
+        // ============ INIT ============
+        initQCM();
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(e => console.log(e));
+    </script>
+</body>
+</html>
