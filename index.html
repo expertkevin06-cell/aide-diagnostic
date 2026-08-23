@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0a2540">
+    <meta name="description" content="Aide au diagnostic by Kevin - Outil professionnel de diagnostic automobile avec IA">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Aide au diagnostic by Kevin</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
     
-    <!-- Firebase SDK (chargés en premier) -->
+    <!-- Firebase SDK (chargés AVANT app.js) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -112,6 +115,8 @@
         .conclusion-box h4 { color: #ff8c42; margin-top: 15px; margin-bottom: 8px; }
         .conclusion-box ul { margin-left: 20px; margin-bottom: 10px; }
         .conclusion-box li { margin-bottom: 5px; line-height: 1.5; }
+        .conclusion-box code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+        .conclusion-box a { color: #ffd700; }
         
         .recall-card { background: #f8f9fa; border-left: 4px solid #ff6b35; padding: 12px; margin: 10px 0; border-radius: 8px; }
         .recall-card h4 { color: #0a2540; margin-bottom: 6px; }
@@ -139,10 +144,10 @@
     <div class="container">
         <div class="header">
             <h1>🔧 Aide au diagnostic by Kevin</h1>
-            <p>Outil professionnel IA & Rappels Constructeur — Toutes marques</p>
+            <p>Outil professionnel IA & Rappels Constructeur — Toutes marques 2017-2026</p>
         </div>
 
-        <!-- LOGIN -->
+        <!-- ==================== LOGIN ==================== -->
         <div id="loginSection" class="login-box">
             <h2>🔐 Connexion Sécurisée</h2>
             <div class="form-group">
@@ -158,7 +163,7 @@
             <div id="loginMessage" style="margin-top:15px"></div>
         </div>
 
-        <!-- MAIN APP -->
+        <!-- ==================== MAIN APP ==================== -->
         <div id="mainApp" class="hidden">
             <div class="user-info">
                 <div>
@@ -174,23 +179,41 @@
                 <div class="nav-tab" onclick="showSection('recalls')">📋 Rappels & TSB</div>
                 <div class="nav-tab" onclick="showSection('history')">📁 Historique</div>
                 <div class="nav-tab admin-only hidden" onclick="showSection('admin')">⚙️ Supervision</div>
-                <div class="nav-tab" onclick="showSection('share')"> Partager APK</div>
+                <div class="nav-tab" onclick="showSection('share')">📤 Partager</div>
             </div>
 
-            <!-- DIAGNOSTIC -->
+            <!-- ==================== DIAGNOSTIC ==================== -->
             <div id="diagnosticSection" class="section active">
                 <h2>🚗 Formulaire de Diagnostic</h2>
-                <div class="alert alert-info">Remplissez les constatations techniques. L'IA locale analysera l'origine du désordre.</div>
+                <div class="alert alert-info">Remplissez les constatations techniques. L'IA analysera l'origine du désordre et recherchera les rappels constructeur.</div>
 
+                <!-- Identification automatique -->
+                <h3> Identification automatique du véhicule (optionnel)</h3>
+                <div class="alert alert-info">Identifiez automatiquement votre véhicule par VIN ou immatriculation. Les campagnes de rappel seront recherchées automatiquement.</div>
+                <div class="form-group">
+                    <label>Type d'identification</label>
+                    <select id="idType">
+                        <option value="vin">Numéro VIN (17 caractères)</option>
+                        <option value="plate">Immatriculation (ex: AB-123-CD)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Valeur</label>
+                    <input type="text" id="idValue" placeholder="Entrez le VIN ou l'immatriculation">
+                    <button class="btn btn-primary" onclick="identifyVehicle()" style="margin-top:10px">🔍 Identifier le véhicule</button>
+                </div>
+                <div id="idResult"></div>
+
+                <!-- Informations véhicule -->
                 <h3>📌 Informations Véhicule</h3>
                 <div class="form-group">
                     <label>Marque</label>
                     <select id="vehicleBrand">
                         <option value="">-- Sélectionner --</option>
-                        <optgroup label="🇫🇷 Françaises"><option>Peugeot</option><option>Citroën</option><option>Renault</option><option>DS</option><option>Alpine</option></optgroup>
-                        <optgroup label="🇪🇺 Européennes"><option>Volkswagen</option><option>Audi</option><option>BMW</option><option>Mercedes</option><option>Porsche</option><option>Fiat</option><option>Alfa Romeo</option><option>Opel</option><option>Volvo</option><option>SEAT</option><option>Škoda</option><option>Mini</option><option>Land Rover</option><option>Jaguar</option></optgroup>
-                        <optgroup label="🌏 Asiatiques"><option>Toyota</option><option>Honda</option><option>Nissan</option><option>Mazda</option><option>Subaru</option><option>Mitsubishi</option><option>Suzuki</option><option>Lexus</option><option>Hyundai</option><option>Kia</option><option>Genesis</option></optgroup>
-                        <optgroup label="🇺🇸 Américaines"><option>Ford</option><option>Chevrolet</option><option>Dodge</option><option>Jeep</option><option>Chrysler</option><option>Cadillac</option><option>GMC</option><option>Lincoln</option><option>Tesla</option></optgroup>
+                        <optgroup label="🇫 Françaises"><option>Peugeot</option><option>Citroën</option><option>Renault</option><option>DS</option><option>Alpine</option></optgroup>
+                        <optgroup label="🇺 Européennes"><option>Volkswagen</option><option>Audi</option><option>BMW</option><option>Mercedes</option><option>Porsche</option><option>Fiat</option><option>Alfa Romeo</option><option>Opel</option><option>Volvo</option><option>SEAT</option><option>Škoda</option><option>Mini</option><option>Land Rover</option><option>Jaguar</option></optgroup>
+                        <optgroup label="🌏 Asiatiques"><option>Toyota</option><option>Honda</option><option>Nissan</option><option>Mazda</option><option>Subaru</option><option>Mitsubishi</option><option>Suzuki</option><option>Lexus</option><option>Hyundai</option><option>Kia</option><option>Genesis</option><option>BYD</option><option>XPeng</option><option>NIO</option><option>Polestar</option></optgroup>
+                        <optgroup label="🇺🇸 Américaines"><option>Ford</option><option>Chevrolet</option><option>Dodge</option><option>Jeep</option><option>Chrysler</option><option>Cadillac</option><option>GMC</option><option>Lincoln</option><option>Tesla</option><option>Rivian</option><option>Lucid</option></optgroup>
                     </select>
                 </div>
                 <div class="form-group"><label>Modèle</label><input type="text" id="vehicleModel" placeholder="Ex: 308, Clio, Golf..."></div>
@@ -199,17 +222,19 @@
                     <label>Motorisation</label>
                     <select id="vehicleEngine">
                         <option value="">-- Sélectionner --</option>
-                        <option>Essence</option><option>Diesel (Gazole)</option><option>Hybride</option><option>Hybride rechargeable</option><option>Électrique</option><option>GPL</option>
+                        <option>Essence</option><option>Diesel (Gazole)</option><option>Hybride</option><option>Hybride rechargeable</option><option>Électrique</option><option>GPL</option><option>GNV</option>
                     </select>
                 </div>
                 <div class="form-group"><label>Kilométrage (km)</label><input type="number" id="vehicleMileage" placeholder="Ex: 85000"></div>
                 <div class="form-group"><label>Numéro VIN (optionnel)</label><input type="text" id="vehicleVIN" placeholder="17 caractères" maxlength="17"></div>
 
-                <h3>⚠️ Symptômes & Constatations</h3>
+                <!-- Symptômes -->
+                <h3>️ Symptômes & Constatations</h3>
                 <div class="form-group"><label>Symptôme principal constaté</label><textarea id="symptoms" placeholder="Décrivez le symptôme..."></textarea></div>
                 <div class="form-group"><label>Contexte d'apparition</label><textarea id="context" placeholder="Quand et dans quelles conditions..."></textarea></div>
                 <div class="form-group"><label>Défauts ou anomalies visuelles sur pièces</label><textarea id="visualDefects" placeholder="Anomalies visuelles observées..."></textarea></div>
 
+                <!-- Codes DTC -->
                 <h3>🔍 Codes Défauts (DTC)</h3>
                 <div class="form-group">
                     <label>Lecture des codes défauts réalisée ?</label>
@@ -222,6 +247,7 @@
                     <div class="form-group"><label>Numéros de codes DTC relevés</label><textarea id="dtcCodes" placeholder="Ex: P0300, P0171, U0100... (un par ligne)"></textarea></div>
                 </div>
 
+                <!-- QCM -->
                 <h3>✅ Questionnaire Technique (QCM)</h3>
                 <div class="alert alert-info">Cochez les cas correspondants. Une cellule de détail s'ouvrira automatiquement.</div>
                 <div class="checkbox-group" id="qcmContainer"></div>
@@ -235,15 +261,15 @@
                 </div>
             </div>
 
-            <!-- ANALYSIS -->
+            <!-- ==================== ANALYSIS ==================== -->
             <div id="analysisSection" class="section">
                 <h2>🤖 Analyse IA & Conclusion</h2>
-                <div class="alert alert-info">Analyse générée par le moteur expert local (IA hors-ligne) croisée avec la base de données constructeur.</div>
+                <div class="alert alert-info">Analyse générée par le moteur expert local croisée avec la base de données constructeur et les rappels par VIN.</div>
                 <div id="analysisContent"></div>
                 <div id="aiConclusion"></div>
             </div>
 
-            <!-- RECALLS -->
+            <!-- ==================== RECALLS ==================== -->
             <div id="recallsSection" class="section">
                 <h2>📋 Campagnes de Rappel & TSB (Base Locale)</h2>
                 <div class="alert alert-info">Base de données locale des rappels et pannes connues (fonctionne hors-ligne).</div>
@@ -255,31 +281,31 @@
                 <div id="recallResults"></div>
             </div>
 
-            <!-- HISTORY -->
+            <!-- ==================== HISTORY ==================== -->
             <div id="historySection" class="section">
                 <h2>📁 Historique des Diagnostics</h2>
                 <div id="historyContent"></div>
             </div>
 
-            <!-- ADMIN -->
+            <!-- ==================== ADMIN ==================== -->
             <div id="adminSection" class="section">
                 <h2>⚙️ Panneau de Supervision</h2>
                 <div class="alert alert-success">👑 Mode Administrateur activé — Contrôle total des accès à distance.</div>
                 <h3>📊 Statistiques</h3>
                 <div id="adminStats"></div>
                 <h3>👥 Gestion des Tiers (Accès à distance)</h3>
-                <div class="alert alert-warning">️ Vous pouvez autoriser ou couper l'accès de n'importe quel tiers à tout moment. La modification est instantanée sur leur appareil.</div>
+                <div class="alert alert-warning">⚠️ Vous pouvez autoriser ou couper l'accès de n'importe quel tiers à tout moment. La modification est instantanée sur leur appareil.</div>
                 <div id="tiersTable"></div>
             </div>
 
-            <!-- SHARE -->
+            <!-- ==================== SHARE ==================== -->
             <div id="shareSection" class="section">
                 <h2>📤 Partager l'Application</h2>
                 <div class="alert alert-info"> Partagez l'APK ou le lien. Les destinataires devront faire une demande d'accès.</div>
                 <div class="form-group">
                     <label>Partager par SMS</label>
                     <input type="text" id="shareSmsNumber" placeholder="Numéro de téléphone">
-                    <button class="btn btn-primary" onclick="shareBySMS()" style="margin-top:10px"> Envoyer SMS</button>
+                    <button class="btn btn-primary" onclick="shareBySMS()" style="margin-top:10px">📱 Envoyer SMS</button>
                 </div>
                 <div class="form-group">
                     <label>Partager par Email</label>
@@ -288,7 +314,7 @@
                 </div>
                 <div class="form-group">
                     <label>Lien de téléchargement / PWA</label>
-                    <input type="text" id="shareLink" readonly value="https://votre-site.github.io/diag-kevin">
+                    <input type="text" id="shareLink" readonly value="https://expertkevin06-cell.github.io/aide-diagnostic/">
                     <button class="btn btn-secondary" onclick="copyLink()" style="margin-top:10px"> Copier le lien</button>
                 </div>
             </div>
